@@ -1,0 +1,3 @@
+This program is a COOL language compiler with javascript as target language. It is also writtern completely in javascript
+It is based on the http://code.google.com/p/coolcplusplus/
+which is a c++ compiler for cool with MIPS as target language
