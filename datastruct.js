@@ -181,6 +181,31 @@ mixin(ret.CLAttr.prototype,(function(){
 	  };
  })());
 
+
+ret.CLFormal=function(objid,typeid){
+    this.objectid = objid;
+	this.typeid = typeid;
+} 
+mixin(ret.CLFormal.prototype,(function(){
+	  return {
+		  accept:function(visitor){
+		      visitor.visitCLFormal(this);
+		  }
+	  };
+ })());
+ret.CLFormalList=function(){
+    this.list=[];
+} 
+mixin(ret.CLFormalList.prototype,(function(){
+	  return {
+		  accept:function(visitor){
+		      visitor.visitCLFormalList(this);
+		  },
+		  append:function(item){
+		      this.list.push(item);
+		  }
+	  };
+ })());
  
 ret.CLExprCommaSepList=function(){
     this.list=[];
@@ -208,18 +233,52 @@ mixin(ret.CLExprSemiColonList.prototype,(function(){
 		}
 	};
 })()); 
-
-ret.CLLet=function(){
-    
+ret.CLLetExpr=function(let_list,expr){
+    this.let_list = let_list;
+	this.expr = expr;
 }
-mixin(ret.CLLet.prototype,(function(){
+mixin(ret.CLLetExpr.prototype,(function(){
+    return {
+	      accept:function(visitor){
+		      visitor.visitCLLetExpr(this);
+		  }
+	};
+})());
+ret.CLLetList=function(){
+    this.list=[];
+}
+mixin(ret.CLLetList.prototype,(function(){
+    return {
+	      accept:function(visitor){
+		  },
+		  append:function(item){
+		      this.list.push(item);
+		  }
+	};
+})());
+ret.CLLetItem=function(objid,typeid,expr){
+    this.objectid = objid;
+	this.typeid = typeid;
+	this.expr = expr;
+}
+mixin(ret.CLLetItem.prototype,(function(){
     return {
 	      accept:function(visitor){
 		  }
 	};
 })());
 //  Expressions 
-
+ret.CLAssign=function(objectid,expr){
+   this.objectid = objectid;
+   this.expr = expr;
+}
+mixin(ret.CLAssign.prototype,(function(){
+   return {
+       accept:function(visitor){
+	       visitor.visitCLAssign(this);
+	   }
+   };
+})());
 ret.CLDispatch=function(expr,objectid,params){
    this.expr = expr;
    this.objectid=objectid;
@@ -232,7 +291,16 @@ mixin(ret.CLDispatch.prototype,(function(){
 		  }
 	  };
  })()); 
- 
+ret.CLBlock=function(semi_colon_list){
+   this.expr_list = semi_colon_list;
+} 
+mixin(ret.CLBlock.prototype,(function(){
+    return {
+	    accept:function(visitor){
+		     visitor.visitCLBlock(this);
+		}
+	};
+})());
 ret.CLNew=function(expr){
     this.expr = expr;
 }
@@ -492,6 +560,30 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 				  this.js.a(";");
 			  }
 		  },
+		  visitCLLetExpr:function(letexpr){
+		      this.js.a("(function(");
+			  for(var x=0;x<letexpr.let_list.list.length;x++){
+			      if(x>0) this.js.a(",");
+			      this.js.a(letexpr.let_list.list[x].objectid);
+			  }
+			  this.js.a("){");
+			     letexpr.expr.accept(this);
+			  this.js.a("})(");
+			  for(var x=0;x<letexpr.let_list.list.length;x++){
+			      if(x>0) this.js.a(",");
+				  if(letexpr.let_list.list[x].expr){
+				      letexpr.let_list.list[x].expr.accept(this);
+				  } else if(letexpr.let_list.list[x].typeid=="Int") {
+				      this.js.a("0");
+				  } else if(letexpr.let_list.list[x].typeid=="String") {
+				      this.js.a("");
+				  } else {
+				      this.js.a("undefined");
+				  }
+			      
+			  }
+			  this.js.a(");");
+		  },
 		  visitCLNew:function(newobj){
 		      this.js.a("(new "+this.ns+".CLPrefix_"+newobj.expr+"())");
 		  },
@@ -544,7 +636,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		      this.js.a("!");
 		  },
 		  visitCLObject:function(objid){
-		       this.js.a("("+objid.val+"||self."+objid.val+")");
+		       this.js.a("("+objid.val+")");
 		  },
 		  visitCLIntConst:function(int_const){
 		       this.js.a(int_const.val);
@@ -554,6 +646,11 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		  },
 		  visitCLBoolConst:function(bool_const){
 		      this.js.a(bool_const.val);
+		  },
+		  visitCLAssign:function(asgn){
+		      this.js.a(asgn.objectid);
+		      this.js.a("=");
+			  asgn.expr.accept(this);
 		  },
 		  visitDispatch:function(dispatch){
 		       this.js.a("(");
@@ -569,6 +666,20 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 				  }
 				  explist.list[x].accept(this);
 			  }
+		  },
+		  visitCLFormalList:function(flist){
+		      for(var x=0;x<flist.list.length;x++){
+			      if(x>0) this.js.a(",");
+				  flist.list[x].accept(this);
+			  }
+		  },
+		  visitCLFormal:function(formal){
+		     this.js.a(formal.objectid);
+		  },
+		  visitCLBlock:function(block){
+		     this.js.a("(function(){");
+			   block.expr_list.accept(this);
+			 this.js.a("})();");
 		  }
 	  };
  })());

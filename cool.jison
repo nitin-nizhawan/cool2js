@@ -272,13 +272,26 @@ feature_list
 feature:
     
     OBJECTID '(' ')' ':' TYPEID '{' expr_semicolon_list '}'
-      {  $$ = new yy.ds.CLMethod($1,new yy.ds.CLExprCommaSepList(), $5, $7); }
+      {  $$ = new yy.ds.CLMethod($1,new yy.ds.CLFormalList(), $5, $7); }
+	| OBJECTID '(' formal_list ')' ':' TYPEID '{' expr_semicolon_list '}'
+      {  $$ = new yy.ds.CLMethod($1,$3, $6, $8); }  
     | OBJECTID ':' TYPEID 
       { $$ = new yy.ds.CLAttr($1,$3,null); }
 	| OBJECTID ':' TYPEID ASSIGN expr
 	  { $$ = new yy.ds.CLAttr($1,$3,$5); }
     ;
 	
+formal_list
+    : formal
+      { $$ = new yy.ds.CLFormalList();$$.append($1); }
+    | formal_list ',' formal
+      { $$= $1; $1.append($3); }
+    ;
+    
+formal
+    : OBJECTID ':' TYPEID
+      { $$ = new yy.ds.CLFormal($1, $3); }
+    ;	
 	
 /* expressions  */
  /* expr_semicolon_list: [[expr;]]* */
@@ -296,23 +309,28 @@ expr_comma_list
       { $$ = new yy.ds.CLExprCommaSepList();$$.append($1); }
     | expr_comma_list ',' expr
       { $1.append($3); $$ = $1; }
-    ;	
-let_list:
-    OBJECTID ':' TYPEID ASSIGN expr IN expr
-      { 
-      $$ = new yy.ds.CLLet($1, $3, $5, $7); }
-    | OBJECTID ':' TYPEID IN expr
-      { 
-      $$ = new yy.ds.CLLet($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expr ',' let_list
-      { 
-      $$ = new yy.ds.CLLet($1, $3, $5, $7); }
-    | OBJECTID ':' TYPEID ',' let_list
-      {  $$ = new yy.ds.CLLet($1, $3, no_expr(), $5); }
-    
     ;
+let_expr
+    : let_list IN expr
+    { $$ = new yy.ds.CLLetExpr($1,$3); }	
+	;
+let_list
+    : let_item
+	  { $$ = new yy.ds.CLLetList(); $$.append($1); }
+	| let_list ',' let_item
+	  { $1.append($3); $$ = $1; }
+	;
+let_item
+    : OBJECTID ':' TYPEID
+	  { $$ = new yy.ds.CLLetItem($1,$3,null); }
+	| OBJECTID ':'  TYPEID ASSIGN expr
+	  {$$ = new yy.ds.CLLetItem($1,$3,$5); }
+	;
+	  
 expr
-    : expr '.' OBJECTID '('  ')'
+    : OBJECTID ASSIGN expr
+      { $$ = new yy.ds.CLAssign($1, $3); }
+    | expr '.' OBJECTID '('  ')'
       { $$ = new yy.ds.CLDispatch($1, $3, new yy.ds.CLExprSemiColonList()); }
     | expr '.' OBJECTID '(' expr_comma_list ')'
       { $$ = new yy.ds.CLDispatch($1, $3, $5); }
@@ -320,7 +338,9 @@ expr
       { $$ = new yy.ds.CLDispatch(new yy.ds.CLObject("self"),$1,new yy.ds.CLExprSemiColonList()); }
     | OBJECTID '(' expr_comma_list ')'
       { $$ = new yy.ds.CLDispatch(new yy.ds.CLObject("self"),$1,$3); }
-	| LET let_list
+	| '{' expr_semicolon_list '}'
+      { $$ = new yy.ds.CLBlock($2); }
+	| LET let_expr
       { $$ = $2; }
 	| NEW TYPEID
       { $$ = new yy.ds.CLNew($2); }
