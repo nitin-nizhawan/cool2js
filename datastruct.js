@@ -291,6 +291,17 @@ mixin(ret.CLDispatch.prototype,(function(){
 		  }
 	  };
  })()); 
+ret.CLLoop=function(expr1,expr2){
+    this.expr1 = expr1;
+	this.expr2 = expr2;
+}
+mixin(ret.CLLoop.prototype,(function(){
+    return {
+	    accept:function(visitor){
+		     visitor.visitCLLoop(this);
+		}
+	};
+})());
 ret.CLBlock=function(semi_colon_list){
    this.expr_list = semi_colon_list;
 } 
@@ -567,7 +578,9 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			      this.js.a(letexpr.let_list.list[x].objectid);
 			  }
 			  this.js.a("){");
+			     this.js.a("return ");
 			     letexpr.expr.accept(this);
+				 this.js.a(";");
 			  this.js.a("})(");
 			  for(var x=0;x<letexpr.let_list.list.length;x++){
 			      if(x>0) this.js.a(",");
@@ -679,6 +692,15 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		  visitCLBlock:function(block){
 		     this.js.a("(function(){");
 			   block.expr_list.accept(this);
+			 this.js.a("})();");
+		  },
+		  visitCLLoop:function(loop){
+		     this.js.a("(function(){")
+			 this.js.a("while(");
+			     loop.expr1.accept(this);
+			 this.js.a("){");
+			     loop.expr2.accept(this);
+			 this.js.a("}");
 			 this.js.a("})();");
 		  }
 	  };

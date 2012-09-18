@@ -336,6 +336,8 @@ expr
       { $$ = new yy.ds.CLDispatch($1, $3, $5); }
     | OBJECTID '(' ')'
       { $$ = new yy.ds.CLDispatch(new yy.ds.CLObject("self"),$1,new yy.ds.CLExprSemiColonList()); }
+	| WHILE expr LOOP expr POOL
+      { $$ = new yy.ds.CLLoop($2, $4); }
     | OBJECTID '(' expr_comma_list ')'
       { $$ = new yy.ds.CLDispatch(new yy.ds.CLObject("self"),$1,$3); }
 	| '{' expr_semicolon_list '}'

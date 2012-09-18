@@ -12,7 +12,14 @@ class Main inherits SuperMain {
 	      outstring(hw+op);
 		  outstring(hw*op);
       };
-	  outstring(5);
+	  outstring(fibo(6));
+	  let c:Int in {
+	     while c<8 loop  {
+	      outstring(fibo(c));
+		  outstring(" ");
+		  c<-c+1; }
+		  pool;
+	  };
   };
     
 };
@@ -22,7 +29,16 @@ class SuperMain inherits IO {
 		self;
 	};
 	fibo(n:Int):Int{
-	   fibo(n*fibo(n-1));
+	   let f:Int,s:Int<-1,c:Int,tmp:Int in {
+	       while c<n loop {
+		     tmp<-f;
+			 f<-s;
+			 s<-f+tmp;
+			-- outstring(f);
+		     c <- c + 1; }
+		   pool;
+		   f;
+	   };
 	};
 }; 	
 class HelloWorld {
