@@ -7,16 +7,16 @@ class Main inherits SuperMain {
   hw:HelloWorld<-new HelloWorld;
   main():SELFTYPE{
       printthing();
-	  outstring(hw.getString());
+	  out_string(hw.getString());
 	  let hw:Int<-1*45,op:Int in {
-	      outstring(hw+op);
-		  outstring(hw*op);
+	      out_string(hw+op);
+		  out_string(hw*op);
       };
-	  outstring(fibo(6));
+	  out_string(fibo(6));
 	  let c:Int in {
 	     while c<8 loop  {
-	      outstring(fibo(c));
-		  outstring(" ");
+	      out_string(fibo(c));
+		  out_string(" ");
 		  c<-c+1; }
 		  pool;
 	  };
@@ -25,7 +25,7 @@ class Main inherits SuperMain {
 };
 class SuperMain inherits IO {
     printthing():SELFTYPE{
-	    outstring(1+2*4/5);
+	    out_string(1+2*4/5);
 		self;
 	};
 	fibo(n:Int):Int{
@@ -34,7 +34,7 @@ class SuperMain inherits IO {
 		     tmp<-f;
 			 f<-s;
 			 s<-f+tmp;
-			-- outstring(f);
+			-- out_string(f);
 		     c <- c + 1; }
 		   pool;
 		   f;
