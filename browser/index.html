@@ -1,0 +1,55 @@
+<html>
+<head>
+<title>cool2js</title>
+<script src="../src/cool.js" ></script>
+<script src="../src/datastruct.js" ></script>
+<script>
+
+function runit(){
+   tptr=0;
+   var srccddiv = document.getElementById("srccd");
+   var inptdiv = document.getElementById("inpt");
+   var outptdiv = document.getElementById("outpt");
+    outptdiv.value="";
+	inptdiv.value="";
+	var parser = new cool.Parser();
+	parser.yy.ds = ds;
+	parser.yy.debug = function(v){
+	  inptdiv.value+=v;
+	};
+	parser.yy.printstr=function(str){
+	    outptdiv.value+=str;
+	}
+	parser.parse(srccddiv.value);
+}
+</script>
+</head>
+<body>
+<label>Source:</label>
+<textarea rows="20" cols="100" id="srccd" >
+class Main inherits IO {
+    main():SELF_TYPE{
+	    out_string("Hello\tWorld!".type_name().concat("\n"));
+		out_string(self.type_name());
+		out_string("\n");
+		out_int(3+4*2/5*2-3);
+		out_string("\n");
+		out_int(fibo(6));
+	    self;
+	};
+	fibo(n:Int):Int{
+	     if n<3
+           then
+             1
+            else
+	    fibo(n-1)+fibo(n-2) fi;
+	};
+};
+</textarea>
+<label>Input:</label>
+<textarea rows="10" cols="100" id="inpt" ></textarea>
+<label>Output:</label>
+<textarea rows="10" cols="100" id="outpt" ></textarea>
+<input type="button" value="Run" onclick="runit()" />
+</body>
+</html>
