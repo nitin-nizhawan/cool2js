@@ -232,7 +232,44 @@ mixin(ret.CLExprSemiColonList.prototype,(function(){
 		     visitor.visitExprSemiColonList(this);
 		}
 	};
-})()); 
+})());
+
+ret.CLBranchList=function(){
+    this.list = [];
+}
+mixin(ret.CLBranchList.prototype,(function(){
+    return {
+	      append:function(item){
+		      this.list.push(item);
+		  },
+	      accept:function(visitor){
+		      
+		  }
+	};
+})());
+ret.CLBranch=function(objid,typeid,expr){
+    this.objectid = objid;
+    this.typeid = typeid;
+    this.expr = expr;
+}
+mixin(ret.CLBranch.prototype,(function(){
+    return {
+	      accept:function(visitor){
+		      
+		  }
+	};
+})());
+ret.CLCaseExpr=function(expr,case_list){
+    this.expr = expr;
+	this.case_list = case_list;
+}
+mixin(ret.CLCaseExpr.prototype,(function(){
+    return {
+	      accept:function(visitor){
+		      visitor.visitCLCaseExpr(this);
+		  }
+	};
+})());
 ret.CLLetExpr=function(let_list,expr){
     this.let_list = let_list;
 	this.expr = expr;
@@ -527,6 +564,9 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_Object.prototype.type_name=function(){");
 			   this.js("    return new "+this.ns+".CLPrefix_String().$init(this.$__CL_type_id);");
 			   this.js("}");
+			   this.js(this.ns+".CLPrefix_Object.prototype.$eq=function(objref){");
+			   this.js("    return new "+this.ns+".CLPrefix_Bool().$init(this===objref);");
+			   this.js("}");
 			   this.js(this.ns+".CLPrefix_Object.prototype.abort=function(){");
 			   this.js(" throw new Error(\"Program Aborted\") ;");
 			   this.js("}");
@@ -534,19 +574,27 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_IO=function(){");
 			   this.js("this.$__CL_type_id=\"IO\";");
 			   this.js("}");
-			   this.js(this.ns+".mixin("+this.ns+".CLPrefix_IO.prototype,new "+this.ns+".CLPrefix_Object());\n");
+			   this.js(this.ns+".CLPrefix_IO.prototype=new "+this.ns+".CLPrefix_Object();\n");
+			   this.js(this.ns+".CLPrefix_IO.prototype.constructor="+this.ns+".CLPrefix_IO;\n");
 			   this.js(this.ns+".CLPrefix_IO.prototype.out_string=function(v){");
 			   this.js("    yy.printstr(v.$val);return this;");
 			   this.js("}");
 			   this.js(this.ns+".CLPrefix_IO.prototype.out_int=function(v){");
 			   this.js("    yy.printstr(v.$val);return this;");
 			   this.js("}");
+			   this.js(this.ns+".CLPrefix_IO.prototype.in_int=function(v){");
+			   this.js("return new "+this.ns+".CLPrefix_Int().$init(yy.readstr());");
+			   this.js("}");
+			   this.js(this.ns+".CLPrefix_IO.prototype.in_int=function(v){");
+			   this.js("return new "+this.ns+".CLPrefix_String().$init(yy.readstr());");
+			   this.js("}");
 			   // String class
 			   this.js(this.ns+".CLPrefix_String=function(){");
 			   this.js("this.$__CL_type_id=\"String\";");
 			   this.js("this.$val=\"\";");
 			   this.js("}");
-			   this.js(this.ns+".mixin("+this.ns+".CLPrefix_String.prototype,new "+this.ns+".CLPrefix_Object());\n");
+			   this.js(this.ns+".CLPrefix_String.prototype=new "+this.ns+".CLPrefix_Object();\n");
+			   this.js(this.ns+".CLPrefix_String.prototype.constructor="+this.ns+".CLPrefix_String;\n");
 			   this.js(this.ns+".CLPrefix_String.prototype.$init=function(v){");
 			   this.js(" this.$val=v;return this;");
 			   this.js("}");
@@ -567,7 +615,8 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js("this.$__CL_type_id=\"Int\";");
 			   this.js("this.$val=0;");
 			   this.js("}");
-			   this.js(this.ns+".mixin("+this.ns+".CLPrefix_Int.prototype,new "+this.ns+".CLPrefix_Object());\n");
+			   this.js(this.ns+".CLPrefix_Int.prototype=new "+this.ns+".CLPrefix_Object();\n");
+			   this.js(this.ns+".CLPrefix_Int.prototype.constructor="+this.ns+".CLPrefix_Int;\n");
 			   this.js(this.ns+".CLPrefix_Int.prototype.$init=function(v){");
 			   this.js(" this.$val=v;return this;");
 			   this.js("}");
@@ -608,7 +657,8 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js("this.$__CL_type_id=\"Bool\";");
 			   this.js("this.$val=false;");
 			   this.js("}");
-			   this.js(this.ns+".mixin("+this.ns+".CLPrefix_Bool.prototype,new "+this.ns+".CLPrefix_Object());\n");
+			   this.js(this.ns+".CLPrefix_Bool.prototype=new "+this.ns+".CLPrefix_Object();\n");
+			   this.js(this.ns+".CLPrefix_Bool.prototype.constructor="+this.ns+".CLPrefix_Bool;\n");
 			   this.js(this.ns+".CLPrefix_Bool.prototype.$init=function(v){");
 			   this.js(" this.$val=v;return this;");
 			   this.js("}");
@@ -629,7 +679,8 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			      cls.getAttrList().accept(this);
 			  this.js("}");
 			  // inheritance
-			  this.js(this.ns+".mixin("+this.ns+".CLPrefix_"+cls.name+".prototype,new "+this.ns+".CLPrefix_"+cls.pclass+"());");
+			  this.js(this.ns+".CLPrefix_"+cls.name+".prototype=new "+this.ns+".CLPrefix_"+cls.pclass+"();");
+			  this.js(this.ns+".CLPrefix_"+cls.name+".prototype.constructor="+this.ns+".CLPrefix_"+cls.name+";");
 			  cls.getMethodList().accept(this);
 		  },
 		  visitAttr:function(attr){
@@ -657,7 +708,9 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  this.js("var self = this;");
 			  this.js("with(self){");
 			  this.js("with(CLPrefix_cooljs_param){");
+			  this.js.a("return ");
 			      method.body.accept(this);
+			   this.js.a(";");
 			  this.js("}}};")
 		  },
 		  visitExprSemiColonList:function(explist){
@@ -807,7 +860,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		  visitCLBlock:function(block){
 		     this.js.a("(function(){");
 			   block.expr_list.accept(this);
-			 this.js.a("})();");
+			 this.js.a("})()");
 		  },
 		  visitCLCond:function(cond){
 		      this.js.a("(function(){if(");
@@ -826,6 +879,24 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			     loop.expr2.accept(this);
 			 this.js.a("}");
 			 this.js.a("})();");
+		  },
+		  visitCLCaseExpr:function(case_expr){
+		      this.js.a("(function($case_expr){");
+			    for(var x=0;x<case_expr.case_list.list.length;x++){
+				     var case_branch = case_expr.case_list.list[x];
+					 this.js.a("if($case_expr instanceof "+this.ns+".CLPrefix_"+case_branch.typeid+")");
+					 this.js.a("return ");
+					     this.js.a("(function("+case_branch.objectid+"){");
+						 this.js.a("return ");
+						   case_branch.expr.accept(this);
+						 this.js.a(";");
+						 this.js.a("})($case_expr)");
+					 this.js.a("; else ");
+				}
+				this.js.a("throw new Error(\"No case matched\");");
+			  this.js.a("})(");
+			     case_expr.expr.accept(this);
+			  this.js.a(");");
 		  }
 	  };
  })());

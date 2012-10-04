@@ -273,9 +273,9 @@ feature_list
     
 feature:
     
-    OBJECTID '(' ')' ':' TYPEID '{' expr_semicolon_list '}'
+    OBJECTID '(' ')' ':' TYPEID '{' expr '}'
       {  $$ = new yy.ds.CLMethod($1,new yy.ds.CLFormalList(), $5, $7); }
-	| OBJECTID '(' formal_list ')' ':' TYPEID '{' expr_semicolon_list '}'
+	| OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
       {  $$ = new yy.ds.CLMethod($1,$3, $6, $8); }  
     | OBJECTID ':' TYPEID 
       { $$ = new yy.ds.CLAttr($1,$3,null); }
@@ -311,6 +311,18 @@ expr_comma_list
       { $$ = new yy.ds.CLExprCommaSepList();$$.append($1); }
     | expr_comma_list ',' expr
       { $1.append($3); $$ = $1; }
+    ;
+  /* case_list: [case]+ */
+case_list
+	: case
+      { $$ = new yy.ds.CLBranchList();$$.append($1); }
+    | case_list case
+      { $1.append($2);$$ = $1; }
+    ;
+    
+case
+    : OBJECTID ':' TYPEID DARROW expr ';'
+      { $$ = new yy.ds.CLBranch($1, $3, $5); }
     ;
 let_expr
     : let_list IN expr
@@ -348,6 +360,8 @@ expr
       { $$ = new yy.ds.CLBlock($2); }
 	| LET let_expr
       { $$ = $2; }
+	| CASE expr OF case_list ESAC
+      { $$ = new yy.ds.CLCaseExpr($2, $4); }
 	| NEW TYPEID
       { $$ = new yy.ds.CLNew($2); }
 	| ISVOID expr
