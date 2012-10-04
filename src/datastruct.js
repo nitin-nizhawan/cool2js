@@ -559,7 +559,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		  codegen:function(){
 		      this.js("var tmpns={};");
 		      this.program.accept(this);
-			  this.js("new "+this.ns+".CLPrefix_Main().main();");
+			  this.js("new "+this.ns+".CLPrefix_Main().$init().main();");
 		  },
 	      installUtils:function(){
 		       // add mixin function
@@ -582,6 +582,9 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js("}");
 			   this.js(this.ns+".CLPrefix_Object.prototype.type_name=function(){");
 			   this.js("    return new "+this.ns+".CLPrefix_String().$init(this.$__CL_type_id);");
+			   this.js("}");
+			   this.js(this.ns+".CLPrefix_Object.prototype.$init=function(){");
+			   this.js("    return this;");
 			   this.js("}");
 			   this.js(this.ns+".CLPrefix_Object.prototype.$eq=function(objref){");
 			   this.js("    return new "+this.ns+".CLPrefix_Bool().$init(this===objref);");
@@ -615,7 +618,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_String.prototype=new "+this.ns+".CLPrefix_Object();\n");
 			   this.js(this.ns+".CLPrefix_String.prototype.constructor="+this.ns+".CLPrefix_String;\n");
 			   this.js(this.ns+".CLPrefix_String.prototype.$init=function(v){");
-			   this.js(" this.$val=v;return this;");
+			   this.js(" this.$val=((typeof(v)==\"undefined\")?\"\":v);return this;");
 			   this.js("}");
 			   //length
 			   this.js(this.ns+".CLPrefix_String.prototype.length=function(v){");
@@ -641,7 +644,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_Int.prototype=new "+this.ns+".CLPrefix_Object();\n");
 			   this.js(this.ns+".CLPrefix_Int.prototype.constructor="+this.ns+".CLPrefix_Int;\n");
 			   this.js(this.ns+".CLPrefix_Int.prototype.$init=function(v){");
-			   this.js(" this.$val=v;return this;");
+			   this.js(" this.$val=((typeof(v)==\"undefined\")?0:v);return this;");
 			   this.js("}");
 			   // plus
 			   this.js(this.ns+".CLPrefix_Int.prototype.$plus=function(v){");
@@ -683,7 +686,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_Bool.prototype=new "+this.ns+".CLPrefix_Object();\n");
 			   this.js(this.ns+".CLPrefix_Bool.prototype.constructor="+this.ns+".CLPrefix_Bool;\n");
 			   this.js(this.ns+".CLPrefix_Bool.prototype.$init=function(v){");
-			   this.js(" this.$val=v;return this;");
+			   this.js(" this.$val=((typeof(v)==\"undefined\")?false:v);return this;");
 			   this.js("}");
 			   this.js(this.ns+".CLPrefix_Bool.prototype.$eq=function(v){");
 			   this.js("return new "+this.ns+".CLPrefix_Bool().$init(this.$val===v.$val);");
@@ -699,11 +702,19 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		  visitCLClass:function(cls){
 		      this.js(this.ns+".CLPrefix_"+cls.name+"=function(){");
 			  this.js("this.$__CL_type_id=\""+cls.name+"\";");
-			      cls.getAttrList().accept(this);
+			      //moved to $init for now, cls.getAttrList().accept(this);
 			  this.js("}");
 			  // inheritance
 			  this.js(this.ns+".CLPrefix_"+cls.name+".prototype=new "+this.ns+".CLPrefix_"+cls.pclass+"();");
 			  this.js(this.ns+".CLPrefix_"+cls.name+".prototype.constructor="+this.ns+".CLPrefix_"+cls.name+";");
+			  // add empty constructor function
+			  this.js(this.ns+".CLPrefix_"+cls.name+".prototype.$init=function(){");
+			  this.js(this.ns+".CLPrefix_"+cls.pclass+".prototype.$init.call(this);");
+			  this.js("var self=this;");
+			  this.js("with(self){");
+			  cls.getAttrList().accept(this);
+			  this.js("return self;");
+			  this.js("}};");
 			  cls.getMethodList().accept(this);
 		  },
 		  visitAttr:function(attr){
@@ -717,6 +728,8 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			     this.js.a("new "+this.ns+".CLPrefix_String().$init(\"\")");
 			  } else if(attr.typeid=="Bool"){
 			     this.js.a("new "+this.ns+".CLPrefix_Bool().$init(false)");
+			  } else {
+			     this.js.a("undefined");
 			  }
 			  this.js.a(";");
 		  },
@@ -763,11 +776,11 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 				  if(letexpr.let_list.list[x].expr){
 				      letexpr.let_list.list[x].expr.accept(this);
 				  } else if(letexpr.let_list.list[x].typeid=="Int") {
-				      this.js.a("new "+this.ns+".CLPrefix_Int().$init(0)");
+				      this.js.a("new "+this.ns+".CLPrefix_Int().$init()");
 				  } else if(letexpr.let_list.list[x].typeid=="String") {
-				      this.js.a("new "+this.ns+".CLPrefix_String().$init(\"\")");
+				      this.js.a("new "+this.ns+".CLPrefix_String().$init()");
 				  } else if(letexpr.let_list.list[x].typeid="Bool"){	  
-				      this.js.a("new "+this.ns+".CLPrefix_Bool().$init(false)");
+				      this.js.a("new "+this.ns+".CLPrefix_Bool().$init()");
 				  } else {
 				      this.js.a("undefined");
 				  }
@@ -776,7 +789,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  this.js.a(");");
 		  },
 		  visitCLNew:function(newobj){
-		      this.js.a("(new "+this.ns+".CLPrefix_"+newobj.expr+"())");
+		      this.js.a("((new "+this.ns+".CLPrefix_"+newobj.expr+"()).$init())");
 		  },
 		  visitCLIsvoid:function(isvoid){
 		      this.js.a("(new "+this.ns+".CLPrefix_Bool().$init("+this.ns+".isVoid(");
@@ -900,7 +913,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  cond.expr2.accept(this);
 			  this.js.a("; else return ");
 			  cond.expr3.accept(this);
-			  this.js.a("; })();");
+			  this.js.a("; })()");
 		  },
 		  visitCLLoop:function(loop){
 		     this.js.a("(function(){")
@@ -909,7 +922,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			 this.js.a(".$val){");
 			     loop.expr2.accept(this);
 			 this.js.a("}");
-			 this.js.a("})();");
+			 this.js.a("})()");
 		  },
 		  visitCLCaseExpr:function(case_expr){
 		      this.js.a("(function($case_expr){");
@@ -927,7 +940,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 				this.js.a("throw new Error(\"No case matched\");");
 			  this.js.a("})(");
 			     case_expr.expr.accept(this);
-			  this.js.a(");");
+			  this.js.a(")");
 		  }
 	  };
  })());
