@@ -568,6 +568,12 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js("        obj1[x]=obj2[x];");
 			   this.js("    }");
 			   this.js("}");
+			   this.js(this.ns+".isVoid=function(obj1){");
+			   this.js("   if(typeof(obj1)==\"undefined\"||obj1==null){");
+			   this.js("        return true;");
+			   this.js("   }");
+			   this.js(" return false; ");
+			   this.js("}");
 		   },
 		   installSystemClasses:function(){
 		       // Object class
@@ -598,7 +604,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_IO.prototype.in_int=function(v){");
 			   this.js("return new "+this.ns+".CLPrefix_Int().$init(yy.readstr());");
 			   this.js("}");
-			   this.js(this.ns+".CLPrefix_IO.prototype.in_int=function(v){");
+			   this.js(this.ns+".CLPrefix_IO.prototype.in_string=function(v){");
 			   this.js("return new "+this.ns+".CLPrefix_String().$init(yy.readstr());");
 			   this.js("}");
 			   // String class
@@ -622,6 +628,10 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   //substr
 			   this.js(this.ns+".CLPrefix_String.prototype.substr=function(i,l){");
 			   this.js(" return new "+this.ns+".CLPrefix_String().$init(this.$val.substr(i.$val,l.$val));");
+			   this.js("}");
+			     //$eq
+			   this.js(this.ns+".CLPrefix_String.prototype.$eq=function(pstr){");
+			   this.js(" return new "+this.ns+".CLPrefix_Bool().$init(this.$val==pstr.$val);");
 			   this.js("}");
 			   //Int Class
 			   this.js(this.ns+".CLPrefix_Int=function(){");
@@ -769,9 +779,9 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		      this.js.a("(new "+this.ns+".CLPrefix_"+newobj.expr+"())");
 		  },
 		  visitCLIsvoid:function(isvoid){
-		      this.js.a("(typeof(");
+		      this.js.a("(new "+this.ns+".CLPrefix_Bool().$init("+this.ns+".isVoid(");
 			  isvoid.expr.accept(this);
-			  this.js.a(")==\"undefined\")");
+			  this.js.a(")))");
 		  },
 		  visitCLPlus:function(plus){
 		      this.js.a("(");

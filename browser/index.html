@@ -52,6 +52,19 @@ out_string("\n");
             }
             pool;
         };
+ let n:Int<-in_int(),i:Int<-1 in {
+ out_string("\nFactorials upto ");
+ out_int(n);
+out_string("\n");
+            while i<=n loop {
+                out_int(i);
+                out_string(":");
+                out_int(fact(i));
+                out_string(" ");
+                i<-i+1;
+            }
+            pool;
+        };
 		case 3*4 of
 		val:String=>out_string("\nHello\n");
 		val:Int=>{out_string("\n"); out_int(val); out_string("\n"); };
@@ -67,11 +80,18 @@ out_string("\n");
             else
 	    fibo(n-1)+fibo(n-2) fi
 	};
+       fact(n:Int):Int{
+           if n<1
+           then 1
+           else
+           n*fact(n-1) fi
+       };
 };
+
 
 </textarea>
 <label>Input:</label>
-<textarea rows="10" cols="100" id="inpt" >12</textarea>
+<textarea rows="10" cols="100" id="inpt" >12 12</textarea>
 <label>Output:</label>
 <textarea rows="10" cols="100" id="outpt" ></textarea>
 <input type="button" value="Run" onclick="runit()" />
