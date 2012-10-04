@@ -316,6 +316,19 @@ mixin(ret.CLAssign.prototype,(function(){
 	   }
    };
 })());
+ret.CLStaticDispatch=function(expr,typeid,objectid,params){
+   this.expr = expr;
+   this.typeid = typeid;
+   this.objectid=objectid;
+   this.params = params
+}  
+mixin(ret.CLStaticDispatch.prototype,(function(){
+	  return {
+		  accept:function(visitor){
+		      visitor.visitStaticDispatch(this);
+		  }
+	  };
+ })()); 
 ret.CLDispatch=function(expr,objectid,params){
    this.expr = expr;
    this.objectid=objectid;
@@ -832,6 +845,14 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		      this.js.a(asgn.objectid);
 		      this.js.a("=");
 			  asgn.expr.accept(this);
+		  },
+		  visitStaticDispatch:function(dispatch){
+		        this.js.a(this.ns+".CLPrefix_"+dispatch.typeid+".prototype."+dispatch.objectid+".apply(");
+		       this.js.a("(");
+		       dispatch.expr.accept(this);
+		       this.js.a("),[");
+			       dispatch.params.accept(this);
+			   this.js.a("])")
 		  },
 		  visitDispatch:function(dispatch){
 		       this.js.a("(");

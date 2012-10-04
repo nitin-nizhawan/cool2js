@@ -344,6 +344,10 @@ let_item
 expr
     : OBJECTID ASSIGN expr
       { $$ = new yy.ds.CLAssign($1, $3); }
+	| expr '@' TYPEID '.' OBJECTID '(' ')'
+      { $$ = new yy.ds.CLStaticDispatch($1, $3, $5,  new yy.ds.CLExprSemiColonList()); }
+    | expr '@' TYPEID '.' OBJECTID '(' expr_comma_list ')'
+      { $$ = new yy.ds.CLStaticDispatch($1, $3, $5, $7); }
     | expr '.' OBJECTID '('  ')'
       { $$ = new yy.ds.CLDispatch($1, $3, new yy.ds.CLExprSemiColonList()); }
     | expr '.' OBJECTID '(' expr_comma_list ')'
