@@ -102,6 +102,8 @@ ENDLINE         \n
 "("                   return '('
 ")"                   return ')'
 
+
+
 /*keywords */
 {CLASS}         { return 'CLASS'; }
 {ELSE}          { return 'ELSE'; }

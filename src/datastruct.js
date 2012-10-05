@@ -786,7 +786,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 				  }
 			      
 			  }
-			  this.js.a(");");
+			  this.js.a(")");
 		  },
 		  visitCLNew:function(newobj){
 		      this.js.a("((new "+this.ns+".CLPrefix_"+newobj.expr+"()).$init())");
