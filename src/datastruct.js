@@ -559,7 +559,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		  codegen:function(){
 		      this.js("var tmpns={};");
 		      this.program.accept(this);
-			  this.js("new "+this.ns+".CLPrefix_Main().$init().main();");
+			  this.js("new "+this.ns+".CLPrefix_Main().$init().CLPrefix_main();");
 		  },
 	      installUtils:function(){
 		       // add mixin function
@@ -580,7 +580,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_Object=function(){");
 			   this.js("this.$__CL_type_id=\"Object\";");
 			   this.js("}");
-			   this.js(this.ns+".CLPrefix_Object.prototype.type_name=function(){");
+			   this.js(this.ns+".CLPrefix_Object.prototype.CLPrefix_type_name=function(){");
 			   this.js("    return new "+this.ns+".CLPrefix_String().$init(this.$__CL_type_id);");
 			   this.js("}");
 			   this.js(this.ns+".CLPrefix_Object.prototype.$init=function(){");
@@ -589,7 +589,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(this.ns+".CLPrefix_Object.prototype.$eq=function(objref){");
 			   this.js("    return new "+this.ns+".CLPrefix_Bool().$init(this===objref);");
 			   this.js("}");
-			   this.js(this.ns+".CLPrefix_Object.prototype.abort=function(){");
+			   this.js(this.ns+".CLPrefix_Object.prototype.CLPrefix_abort=function(){");
 			   this.js(" throw new Error(\"Program Aborted\") ;");
 			   this.js("}");
 			   // IO Class
@@ -598,16 +598,16 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js("}");
 			   this.js(this.ns+".CLPrefix_IO.prototype=new "+this.ns+".CLPrefix_Object();\n");
 			   this.js(this.ns+".CLPrefix_IO.prototype.constructor="+this.ns+".CLPrefix_IO;\n");
-			   this.js(this.ns+".CLPrefix_IO.prototype.out_string=function(v){");
+			   this.js(this.ns+".CLPrefix_IO.prototype.CLPrefix_out_string=function(v){");
 			   this.js("    yy.printstr(v.$val);return this;");
 			   this.js("}");
-			   this.js(this.ns+".CLPrefix_IO.prototype.out_int=function(v){");
+			   this.js(this.ns+".CLPrefix_IO.prototype.CLPrefix_out_int=function(v){");
 			   this.js("    yy.printstr(v.$val);return this;");
 			   this.js("}");
-			   this.js(this.ns+".CLPrefix_IO.prototype.in_int=function(v){");
+			   this.js(this.ns+".CLPrefix_IO.prototype.CLPrefix_in_int=function(v){");
 			   this.js("return new "+this.ns+".CLPrefix_Int().$init(yy.readstr());");
 			   this.js("}");
-			   this.js(this.ns+".CLPrefix_IO.prototype.in_string=function(v){");
+			   this.js(this.ns+".CLPrefix_IO.prototype.CLPrefix_in_string=function(v){");
 			   this.js("return new "+this.ns+".CLPrefix_String().$init(yy.readstr());");
 			   this.js("}");
 			   // String class
@@ -621,15 +621,15 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js(" this.$val=((typeof(v)==\"undefined\")?\"\":v);return this;");
 			   this.js("}");
 			   //length
-			   this.js(this.ns+".CLPrefix_String.prototype.length=function(v){");
+			   this.js(this.ns+".CLPrefix_String.prototype.CLPrefix_length=function(v){");
 			   this.js(" return new "+this.ns+".CLPrefix_Int().$init(this.$val.length);");
 			   this.js("}");
 			   //concat
-			   this.js(this.ns+".CLPrefix_String.prototype.concat=function(v){");
+			   this.js(this.ns+".CLPrefix_String.prototype.CLPrefix_concat=function(v){");
 			   this.js(" return new "+this.ns+".CLPrefix_String().$init(this.$val+v.$val);");
 			   this.js("}");
 			   //substr
-			   this.js(this.ns+".CLPrefix_String.prototype.substr=function(i,l){");
+			   this.js(this.ns+".CLPrefix_String.prototype.CLPrefix_substr=function(i,l){");
 			   this.js(" return new "+this.ns+".CLPrefix_String().$init(this.$val.substr(i.$val,l.$val));");
 			   this.js("}");
 			     //$eq
@@ -710,15 +710,15 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  // add empty constructor function
 			  this.js(this.ns+".CLPrefix_"+cls.name+".prototype.$init=function(){");
 			  this.js(this.ns+".CLPrefix_"+cls.pclass+".prototype.$init.call(this);");
-			  this.js("var self=this;");
-			  this.js("with(self){");
+			  this.js("var CLPrefix_self=this;");
+			  this.js("with(CLPrefix_self){");
 			  cls.getAttrList().accept(this);
-			  this.js("return self;");
+			  this.js("return CLPrefix_self;");
 			  this.js("}};");
 			  cls.getMethodList().accept(this);
 		  },
 		  visitAttr:function(attr){
-		      this.js("this."+attr.name);
+		      this.js("this.CLPrefix_"+attr.name);
 			  this.js.a("=");
 			  if(attr.expr){
 			     attr.expr.accept(this);
@@ -734,16 +734,16 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  this.js.a(";");
 		  },
 		  visitMethod:function(method){
-		      this.js(this.ns+".CLPrefix_"+method.containingClass.name+".prototype."+method.name+"=function(");
+		      this.js(this.ns+".CLPrefix_"+method.containingClass.name+".prototype.CLPrefix_"+method.name+"=function(");
 			      method.paramList.accept(this);
 			  this.js.a("){");
-			  this.js.a("var CLPrefix_cooljs_param={};");
+			  this.js.a("var $CLPrefix_cooljs_param={};");
 			  for(var x=0;x<method.paramList.list.length;x++){
-			      this.js.a("CLPrefix_cooljs_param."+method.paramList.list[x].objectid+"="+method.paramList.list[x].objectid+";");
+			      this.js.a("$CLPrefix_cooljs_param.CLPrefix_"+method.paramList.list[x].objectid+"=CLPrefix_"+method.paramList.list[x].objectid+";");
 			  }
-			  this.js("var self = this;");
-			  this.js("with(self){");
-			  this.js("with(CLPrefix_cooljs_param){");
+			  this.js("var CLPrefix_self = this;");
+			  this.js("with(CLPrefix_self){");
+			  this.js("with($CLPrefix_cooljs_param){");
 			  this.js.a("return ");
 			      method.body.accept(this);
 			   this.js.a(";");
@@ -764,7 +764,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		      this.js.a("(function(");
 			  for(var x=0;x<letexpr.let_list.list.length;x++){
 			      if(x>0) this.js.a(",");
-			      this.js.a(letexpr.let_list.list[x].objectid);
+			      this.js.a("CLPrefix_"+letexpr.let_list.list[x].objectid);
 			  }
 			  this.js.a("){");
 			     this.js.a("return ");
@@ -853,7 +853,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		      this.js.a(".$comp()");
 		  },
 		  visitCLObject:function(objid){
-		       this.js.a("("+objid.val+")");
+		       this.js.a("(CLPrefix_"+objid.val+")");
 		  },
 		  visitCLIntConst:function(int_const){
 		       this.js.a("new "+this.ns+".CLPrefix_Int().$init("+int_const.val+")");
@@ -865,12 +865,12 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		      this.js.a("new "+this.ns+".CLPrefix_Bool().$init("+bool_const.val+")");
 		  },
 		  visitCLAssign:function(asgn){
-		      this.js.a(asgn.objectid);
+		      this.js.a("CLPrefix_"+asgn.objectid);
 		      this.js.a("=");
 			  asgn.expr.accept(this);
 		  },
 		  visitStaticDispatch:function(dispatch){
-		        this.js.a(this.ns+".CLPrefix_"+dispatch.typeid+".prototype."+dispatch.objectid+".apply(");
+		        this.js.a(this.ns+".CLPrefix_"+dispatch.typeid+".prototype.CLPrefix_"+dispatch.objectid+".apply(");
 		       this.js.a("(");
 		       dispatch.expr.accept(this);
 		       this.js.a("),[");
@@ -880,7 +880,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		  visitDispatch:function(dispatch){
 		       this.js.a("(");
 		       dispatch.expr.accept(this);
-		       this.js.a(")."+dispatch.objectid+"(");
+		       this.js.a(").CLPrefix_"+dispatch.objectid+"(");
 			       dispatch.params.accept(this);
 			   this.js.a(")")
 		  },
@@ -899,7 +899,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  }
 		  },
 		  visitCLFormal:function(formal){
-		     this.js.a(formal.objectid);
+		     this.js.a("CLPrefix_"+formal.objectid);
 		  },
 		  visitCLBlock:function(block){
 		     this.js.a("(function(){");
@@ -930,7 +930,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 				     var case_branch = case_expr.case_list.list[x];
 					 this.js.a("if($case_expr instanceof "+this.ns+".CLPrefix_"+case_branch.typeid+")");
 					 this.js.a("return ");
-					     this.js.a("(function("+case_branch.objectid+"){");
+					     this.js.a("(function(CLPrefix_"+case_branch.objectid+"){");
 						 this.js.a("return ");
 						   case_branch.expr.accept(this);
 						 this.js.a(";");
