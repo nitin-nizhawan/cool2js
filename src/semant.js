@@ -1,5 +1,10 @@
 var sa =(function(){
 var sa={};
+function mixin(obj1,obj2){
+	   for(var a in obj2){
+		   obj1[a]=obj2[a];
+	   }
+}
 // SymtabEntry (Symbol table entry)
 var SA_CONST={
   CObject:"Object",
@@ -60,6 +65,18 @@ SymbolTable.prototype.probe=function(id){
 		}
 	}
 }
+SymbolTable.prototype.clone=function(){
+    var st = new SymbolTable();
+    for(var i=0;this.tbl&&i<this.tbl.length;i++){
+	    var tscopeList = this.tbl[i];
+		st.enterscope();
+	    for(var j=0;j<tscopeList.length;j++){
+		    var entry = tscopeList[j];
+		    st.addid(entry.getId(),entry.getInfo());
+		}
+	}
+	return st;
+}
 //SymbolTable definition ends here
 
 function MultiMap(){
@@ -84,7 +101,218 @@ function SemanticError(msg){
 SemanticError.prototype = new Error();
 SemanticError.prototype.constructor = SemanticError;
 SemanticError.prototype.name ="SemanticError";
+CollectDeclarationsVisitor=function(ftable,otable,ctable){
+	this.ftable  = ftable;
+	this.otable = otable;
+	this.ctable = ctable;
+}
+mixin(CollectDeclarationsVisitor.prototype,(function(){
+	  return {
+	      snapshot:function(obj){
+		      obj.ftable  = this.ftable.clone();
+			  obj.otable  = this.otable.clone();
+			  obj.ctable  = this.ctable.clone();
+		  },
+	      visitCLProgram:function(prg){},
+		  visitCLClass:function(cls){
+		      for(var i = 0; i<cls.featureList.list.length; i++) {
+                 var afeature = cls.featureList.list[i];
+                 if (afeature.isMethod())
+                    this.ftable.addid(afeature.name, afeature);
+                 else 
+                    this.otable.addid(afeature.name, afeature);
+             }
+             for(var i = 0; i<cls.featureList.list.length; i++) 
+                    cls.featureList.list[i].accept(this);
+			 this.snapshot(cls);
+		  },
+		  visitCLAttr:function(attr){
+		      if(attr.expr) attr.expr.accept(this);
+			  this.snapshot(attr);
+		  },
+		  visitCLMethod:function(method){
+		       this.otable.enterscope();
+               method.paramList.accept(this);
+               method.body.accept&&method.body.accept(this);
+			   this.snapshot(method);
+               this.otable.exitscope();
+		  },
+		  visitCLExprSemiColonList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
+		  visitCLLetExpr:function(letexpr){
+		      this.otable.enterscope();
+			  for(var i=0;i<letexpr.let_list.list.length;i++){
+                  this.otable.addid(letexpr.let_list.list[i].objectid, letexpr.let_list.list[i].typeid);
+                  letexpr.let_list.list[i].expr.accept(this);
+			  }
+	          letexpr.expr.accept(this);
+			  this.snapshot(letexpr);
+              this.otable.exitscope();
+		  },
+		  visitCLNew:function(newobj){this.snapshot(newobj);},
+		  visitCLIsvoid:function(isvoid){ isvoid.expr.accept(this); this.snapshot(isvoid);},
+		  visitCLPlus:function(plus){ plus.expr1.accept(this); plus.expr2.accept(this);this.snapshot(plus);},
+		  visitCLSub:function(sub){ sub.expr1.accept(this); sub.expr2.accept(this);this.snapshot(sub);},
+		  visitCLMul:function(mul){ mul.expr1.accept(this); mul.expr2.accept(this);this.snapshot(mul);},
+		  visitCLDivide:function(dvd){ dvd.expr1.accept(this); dvd.expr2.accept(this);this.snapshot(dvds);},
+		  visitCLNeg:function(exp){exp.expr.accept(this);this.snapshot(exp);},
+		  visitCLLt:function(eq){eq.expr1.accept(this); eq.expr2.accept(this);this.snapshot(eq);},
+		  visitCLLeq:function(eq){  eq.expr1.accept(this); eq.expr2.accept(this);this.snapshot(eq);},
+		  visitCLEq:function(eq){eq.expr1.accept(this); eq.expr2.accept(this);this.snapshot(eq);},
+		  visitCLComp:function(comp){ comp.expr.accept(this); this.snapshot(comp);},
+		  visitCLObject:function(objid){this.snapshot(objid);},
+		  visitCLIntConst:function(int_const){this.snapshot(int_const);},
+		  visitCLStringConst:function(string_const){this.snapshot(string_const);},
+		  visitCLBoolConst:function(bool_const){this.snapshot(bool_const);},
+		  visitCLAssign:function(asgn){asgn.expr.accept(this);this.snapshot(asgn);},
+		  visitCLStaticDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);this.snapshot(dispatch);},
+		  visitCLDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);this.snapshot(dispatch);},
+		  visitCLExprCommaSepList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
+		  visitCLFormalList:function(flist){for(var i=0;i<flist.list.length;i++) flist.list[i].accept(this);},
+		  visitCLFormal:function(formal){this.otable.addid(formal.objectid, formal.typeid);this.snapshot(formal);},
+		  visitCLBlock:function(block){block.expr_list.accept(this);this.snapshot(block);},
+		  visitCLCond:function(cond){cond.expr1.accept(this); cond.expr2.accept(this); cond.expr3.accept(this);this.snapshot(cond);},
+		  visitCLLoop:function(loop){loop.expr1.accept(this); loop.expr2.accept(this);this.snapshot(loop);},
+		  visitCLCaseExpr:function(case_expr){
+		      case_expr.expr.accept(this);
+			  case_expr.case_list.accept(this);
+			  this.snapshot(case_expr);
+		  },
+		  visitCLAttrList:function(attrList){},
+		  visitCLMethodList:function(methodList){},
+		  visitCLFeatureList:function(featureList){},
+		  visitCLBranchList:function(branchList){
+		      for(var i=0;i<branchList.list.length;i++){
+			      branchList.list[i].accept(this);
+			  }
+		  },
+		  visitCLBranch:function(brnch){
+		      this.otable.enterscope();
+			  this.otable.addid(brnch.objectid, brnch.typeid);
+              brnch.expr.accept(this);
+			  this.snapshot(brnch);
+			  this.otable.exitscope();
+		  },
+		  visitCLLetList:function(brnchList){},
+		  visitCLLetItem:function(letItem){}
+	  };
+ })());
+ 
+function TypeCheckVisitor(ctable){this.ctable=ctable;}
+mixin(TypeCheckVisitor.prototype,(function(){
+	  return {
+	      visitCLProgram:function(prg){
+		     var has_Main=false;
+			 var has_main_meth=false;
+			 for(var i = 0; i<prg.classlist.length; i++) {
+                 var aclass = prg.classlist[i];
+                 aclass.accept(this);
+                 //check if a main class is contained
+                 if (aclass.name == "Main") {
+                     has_Main = true;
+                     if (aclass.ftable.probe("main")){
+                         has_main_meth = true;
+				     }		 
+                 }
+             }
+             if (!has_Main) {
+                 throw new SemanticError("Class Main is not defined.");
+             } else if (!has_main_meth) {
+                 throw new SemanticError("No 'main' method in class Main.");
+             }
+		  },
+		  visitCLClass:function(cls){
+		    this.cur_class = cls.name;
+		    for(var i = 0; i<cls.featureList.list.length; i++) 
+                    cls.featureList.list[i].accept(this);
+		 },
+		  visitCLAttr:function(attr){
+		      if(attr.expr) attr.expr.accept(this);
+		  },
+		  visitCLMethod:function(method){
+		       method.paramList.accept(this);
+               method.body.accept&&method.body.accept(this);
+			   var funcopy = method.ftable.clone();
+               funcopy.exitscope();
+               var lastfun = (funcopy.lookup(method.name));
+    
+                 if (lastfun) {
+                     if (method.paramList.list.length != lastfun.paramList.list.length) {
+                         throw new SemanticError("Incompatible number of formal parameters in redefined method "+ method.name + ".");
+                     }
+                     else {
+                        for(var i = 0;i<method.paramList.list.length;i++) {
+                            if (method.paramList.list[i].typeid!=lastfun.paramList.list[i].typeid) {
+                             
+                               throw new SemanticError("In redefined method " + method.name + ", paramater type "+method.paramList.list[i].typeid +
+            							" is different from original type " + lastfun.paramList.list[i].typeid + ".");
+                             }
+                         }
+                     }
+                     if (lastfun.typeid != method.typeid) {
+                      throw new SemanticError("In redefined method " + method.name + ", return type " + method.typeid+
+                                " is different from original return type " + lastfun.typeid + ".");
+			         }
+              }
 
+             //need to check if type exists
+           if (!this.ctable.lookup(method.typeid) && method.typeid != "SELF_TYPE") {
+                 throw new SemanticError("Undefined return type " + method.typeid + " in method " + method.name + ".") ;
+           } /*else if (!expr->conform(return_type)) {
+                 //check if return type match
+                 throw new SemanticError("Inferred return type " + expr->type + " of method " + name+ " does not conform to declared return type " + return_type << ".");
+              }*/
+		  },
+		  visitCLExprSemiColonList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
+		  visitCLLetExpr:function(letexpr){
+		  
+			  for(var i=0;i<letexpr.let_list.list.length;i++){
+                 letexpr.let_list.list[i].expr.accept(this);
+			  }
+	          letexpr.expr.accept(this);
+		  },
+		  visitCLNew:function(newobj){},
+		  visitCLIsvoid:function(isvoid){ isvoid.expr.accept(this); },
+		  visitCLPlus:function(plus){ plus.expr1.accept(this); plus.expr2.accept(this);},
+		  visitCLSub:function(sub){ sub.expr1.accept(this); sub.expr2.accept(this);},
+		  visitCLMul:function(mul){ mul.expr1.accept(this); mul.expr2.accept(this);},
+		  visitCLDivide:function(dvd){ dvd.expr1.accept(this); dvd.expr2.accept(this);},
+		  visitCLNeg:function(exp){exp.expr.accept(this);},
+		  visitCLLt:function(eq){eq.expr1.accept(this); eq.expr2.accept(this);},
+		  visitCLLeq:function(eq){  eq.expr1.accept(this); eq.expr2.accept(this);},
+		  visitCLEq:function(eq){eq.expr1.accept(this); eq.expr2.accept(this);},
+		  visitCLComp:function(comp){ comp.expr.accept(this); },
+		  visitCLObject:function(objid){},
+		  visitCLIntConst:function(int_const){},
+		  visitCLStringConst:function(string_const){},
+		  visitCLBoolConst:function(bool_const){},
+		  visitCLAssign:function(asgn){asgn.expr.accept(this);},
+		  visitCLStaticDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);},
+		  visitCLDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);},
+		  visitCLExprCommaSepList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
+		  visitCLFormalList:function(flist){for(var i=0;i<flist.list.length;i++) flist.list[i].accept(this);},
+		  visitCLFormal:function(formal){},
+		  visitCLBlock:function(block){block.expr_list.accept(this);},
+		  visitCLCond:function(cond){cond.expr1.accept(this); cond.expr2.accept(this); cond.expr3.accept(this);},
+		  visitCLLoop:function(loop){loop.expr1.accept(this); loop.expr2.accept(this);},
+		  visitCLCaseExpr:function(case_expr){
+		      case_expr.expr.accept(this);
+			  case_expr.case_list.accept(this);
+		  },
+		  visitCLAttrList:function(attrList){},
+		  visitCLMethodList:function(methodList){},
+		  visitCLFeatureList:function(featureList){},
+		  visitCLBranchList:function(branchList){
+		      for(var i=0;i<branchList.list.length;i++){
+			      branchList.list[i].accept(this);
+			  }
+		  },
+		  visitCLBranch:function(brnch){
+			  brnch.expr.accept(this);
+		  },
+		  visitCLLetList:function(brnchList){},
+		  visitCLLetItem:function(letItem){}
+	  };
+ })());
 function ClassTable(){
    this.class_map = new MultiMap();
 }
@@ -266,11 +494,13 @@ ClassTable.prototype.collect_declaration=function() {
 
 
 ClassTable.prototype.ast_traverse=function(symbol) {
-  method_table.enterscope();
-  object_table.enterscope();
-  var myclass = this.class_table->lookup(symbol);
-
-  myclass.scan(object_table, method_table, class_table);
+  this.method_table.enterscope();
+  this.object_table.enterscope();
+  var myclass = this.class_table.lookup(symbol);
+  var scanv =new CollectDeclarationsVisitor(this.method_table,this.object_table,this.class_table);
+  myclass.accept(scanv);
+  //scanv.visitCLClass(myclass);
+ // myclass.accept(object_table, method_table, class_table);
 
   for (var i= 0;this.class_map.map[symbol]&&i<this.class_map.map[symbol].length; i++)
     this.ast_traverse(this.class_map.map[symbol][i]);
@@ -281,8 +511,8 @@ ClassTable.prototype.ast_traverse=function(symbol) {
     method_table->dump();
   }*/
 
-  object_table.exitscope();
-  method_table.exitscope();
+  this.object_table.exitscope();
+  this.method_table.exitscope();
 }
 
 
@@ -303,6 +533,8 @@ sa.CLSemanticAnalizer=function(prgm){
 sa.CLSemanticAnalizer.prototype.check=function(){
     var classtable = new ClassTable().init(this.prgm.classlist);
 	classtable.collect_declaration();
+	var type_check = new TypeCheckVisitor(classtable.class_table);
+	this.prgm.accept(type_check);
 }
 
 

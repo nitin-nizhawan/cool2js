@@ -30,35 +30,10 @@ var ds = (function(){
    }
    mixin(ret.CLProgram.prototype,(function(){
 	   return {
-	       appendChildrenToQ:function(map,className,q){
-		        if(map[className]){
-					    for(x=0;x<map[className].length;x++){
-						    q.push(map[className][x]);
-						}
-	            }		
-		   },
+	       
 		   accept:function(visitor){
 				    // build inheritance hierarchy
-					visitor.visitCLProgram(this);
-					var map={};
-					var x;
-					for(x=0;x<this.classlist.length;x++){
-					    if(!map[this.classlist[x].pclass]){
-						    map[this.classlist[x].pclass]=[this.classlist[x]];
-						} else {
-						    map[this.classlist[x].pclass].push(this.classlist[x]);
-						}
-					}
-					var qu=[];
-					this.appendChildrenToQ(map,"Object",qu);
-					this.appendChildrenToQ(map,"IO",qu);
-					
-					while(qu.length>0){
-					    var curclass = qu.shift();
-						curclass.accept(visitor);
-						this.appendChildrenToQ(map,curclass.name,qu);
-					}
-					
+					visitor.visitCLProgram(this);		
 		   }
 	   };
    })());
@@ -98,10 +73,7 @@ mixin(ret.CLAttrList.prototype,(function(){
 		    this.list.push(item);
 		},
 		accept:function(visitor){
-		    //visitor.visitAttrList(this);
-			for(var x=0;x<this.list.length;x++){
-			    this.list[x].accept(visitor);
-			}
+		    visitor.visitCLAttrList(this);
 		},
 		setClass:function(cls){
 		    this.containingClass=cls;
@@ -120,8 +92,8 @@ mixin(ret.CLMethodList.prototype,(function(){
 		accept:function(visitor){
 		    for(var x=0;x<this.list.length;x++){
 			    this.list[x].containingClass = this.containingClass;
-			    this.list[x].accept(visitor);
 			}
+			visitor.visitCLMethodList(this);
 		},
 		setClass:function(cls){
 		    this.containingClass=cls;
@@ -131,6 +103,7 @@ mixin(ret.CLMethodList.prototype,(function(){
 ret.CLFeatureList=function(){
     this.attrList=new ret.CLAttrList();
 	this.methodList = new ret.CLMethodList();	
+	this.list=[];
 }
 mixin(ret.CLFeatureList.prototype,(function(){
     return {
@@ -145,9 +118,11 @@ mixin(ret.CLFeatureList.prototype,(function(){
 	       } else {
 	         this.methodList.append(item);
 	       }
+		   this.list.push(item);
 		   return this;
 		},
 	    accept:function(visitor){
+		    visitor.visitCLFeatureList(this);
 		}
 	};
 })());
@@ -164,7 +139,10 @@ ret.CLMethod=function(name,formals,typeid,body){
  mixin(ret.CLMethod.prototype,(function(){
 	  return {
 		  accept:function(visitor){
-		      visitor.visitMethod(this);
+		      visitor.visitCLMethod(this);
+		  },
+		  isMethod:function(){
+		      return true;
 		  }
 	  };
   })());
@@ -177,7 +155,10 @@ ret.CLAttr=function(name,typeid,expr){
 mixin(ret.CLAttr.prototype,(function(){
 	  return {
 		  accept:function(visitor){
-		      visitor.visitAttr(this);
+		      visitor.visitCLAttr(this);
+		  },
+		  isMethod:function(){
+		      return false;
 		  }
 	  };
  })());
@@ -218,7 +199,7 @@ mixin(ret.CLExprCommaSepList.prototype,(function(){
 		    this.list.push(item);
 		},
 	    accept:function(visitor){
-		    visitor.visitExprCommaSepList(this);
+		    visitor.visitCLExprCommaSepList(this);
 		}
 	};
 })()); 
@@ -231,7 +212,7 @@ mixin(ret.CLExprSemiColonList.prototype,(function(){
 		    this.list.push(item);
 		},
 	    accept:function(visitor){
-		     visitor.visitExprSemiColonList(this);
+		     visitor.visitCLExprSemiColonList(this);
 		}
 	};
 })());
@@ -245,7 +226,7 @@ mixin(ret.CLBranchList.prototype,(function(){
 		      this.list.push(item);
 		  },
 	      accept:function(visitor){
-		      
+		      visitor.visitCLBranchList(this);
 		  }
 	};
 })());
@@ -257,7 +238,7 @@ ret.CLBranch=function(objid,typeid,expr){
 mixin(ret.CLBranch.prototype,(function(){
     return {
 	      accept:function(visitor){
-		      
+		        visitor.visitCLBranch(this);
 		  }
 	};
 })());
@@ -289,6 +270,7 @@ ret.CLLetList=function(){
 mixin(ret.CLLetList.prototype,(function(){
     return {
 	      accept:function(visitor){
+		      visitor.visitCLLetList(this);
 		  },
 		  append:function(item){
 		      this.list.push(item);
@@ -303,6 +285,7 @@ ret.CLLetItem=function(objid,typeid,expr){
 mixin(ret.CLLetItem.prototype,(function(){
     return {
 	      accept:function(visitor){
+		      visitor.visitCLLetItem(this);
 		  }
 	};
 })());
@@ -327,7 +310,7 @@ ret.CLStaticDispatch=function(expr,typeid,objectid,params){
 mixin(ret.CLStaticDispatch.prototype,(function(){
 	  return {
 		  accept:function(visitor){
-		      visitor.visitStaticDispatch(this);
+		      visitor.visitCLStaticDispatch(this);
 		  }
 	  };
  })()); 
@@ -339,7 +322,7 @@ ret.CLDispatch=function(expr,objectid,params){
 mixin(ret.CLDispatch.prototype,(function(){
 	  return {
 		  accept:function(visitor){
-		      visitor.visitDispatch(this);
+		      visitor.visitCLDispatch(this);
 		  }
 	  };
  })()); 
@@ -451,7 +434,6 @@ mixin(ret.CLDivide.prototype,(function(){
 mixin(ret.CLNeg.prototype,(function(){
 	  return {
 		  accept:function(visitor){
-		       this.expr.accept(visitor);
 		       visitor.visitCLNeg(this);
 		  }
 	  };
@@ -697,9 +679,33 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js("return new "+this.ns+".CLPrefix_Bool().$init(!this.$val);");
 			   this.js("}");
 		  },
+		  appendChildrenToQ:function(map,className,q){
+		        if(map[className]){
+					    for(x=0;x<map[className].length;x++){
+						    q.push(map[className][x]);
+						}
+	            }		
+		  },
 		  visitCLProgram:function(prg){
-		      this.installUtils();
-			  this.installSystemClasses();
+		     this.installUtils();
+			 this.installSystemClasses();
+			 var map={};
+			 var x;
+			 for(x=0;x<prg.classlist.length;x++){
+				if(!map[prg.classlist[x].pclass]){
+				    map[prg.classlist[x].pclass]=[prg.classlist[x]];
+				} else {
+				    map[prg.classlist[x].pclass].push(prg.classlist[x]);
+				}
+			}
+			var qu=[];
+			this.appendChildrenToQ(map,"Object",qu);
+			this.appendChildrenToQ(map,"IO",qu);
+			while(qu.length>0){
+			    var curclass = qu.shift();
+				curclass.accept(this);
+				this.appendChildrenToQ(map,curclass.name,qu);
+			}
 		  },
 		  visitCLClass:function(cls){
 		      this.js(this.ns+".CLPrefix_"+cls.name+"=function(){");
@@ -719,7 +725,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  this.js("}};");
 			  cls.getMethodList().accept(this);
 		  },
-		  visitAttr:function(attr){
+		  visitCLAttr:function(attr){
 		      this.js("this.CLPrefix_"+attr.name);
 			  this.js.a("=");
 			  if(attr.expr){
@@ -735,7 +741,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  }
 			  this.js.a(";");
 		  },
-		  visitMethod:function(method){
+		  visitCLMethod:function(method){
 		      this.js(this.ns+".CLPrefix_"+method.containingClass.name+".prototype.CLPrefix_"+method.name+"=function(");
 			      method.paramList.accept(this);
 			  this.js.a("){");
@@ -751,7 +757,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			   this.js.a(";");
 			  this.js("}}};")
 		  },
-		  visitExprSemiColonList:function(explist){
+		  visitCLExprSemiColonList:function(explist){
 		      for(var x=0;x<explist.list.length;x++){
 			      if(x==explist.list.length-1){
 				      this.js("return ");
@@ -827,6 +833,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  this.js.a("))");
 		  },
 		  visitCLNeg:function(exp){
+		      exp.expr.accept(this);
 		      this.js.a(".$neg()");
 		  },
 		  visitCLLt:function(eq){
@@ -871,7 +878,7 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 		      this.js.a("=");
 			  asgn.expr.accept(this);
 		  },
-		  visitStaticDispatch:function(dispatch){
+		  visitCLStaticDispatch:function(dispatch){
 		        this.js.a(this.ns+".CLPrefix_"+dispatch.typeid+".prototype.CLPrefix_"+dispatch.objectid+".apply(");
 		       this.js.a("(");
 		       dispatch.expr.accept(this);
@@ -879,14 +886,14 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			       dispatch.params.accept(this);
 			   this.js.a("])")
 		  },
-		  visitDispatch:function(dispatch){
+		  visitCLDispatch:function(dispatch){
 		       this.js.a("(");
 		       dispatch.expr.accept(this);
 		       this.js.a(").CLPrefix_"+dispatch.objectid+"(");
 			       dispatch.params.accept(this);
 			   this.js.a(")")
 		  },
-		  visitExprCommaSepList:function(explist){
+		  visitCLExprCommaSepList:function(explist){
 		      for(var x=0;x<explist.list.length;x++){
 			      if(x>0){
 				      this.js.a(",");
@@ -943,6 +950,31 @@ mixin(ret.CLCodeGenVisitor.prototype,(function(){
 			  this.js.a("})(");
 			     case_expr.expr.accept(this);
 			  this.js.a(")");
+		  },
+		  visitCLAttrList:function(attrList){
+		      for(var x=0;x<attrList.list.length;x++){
+			    attrList.list[x].accept(this);
+			  }
+		  },
+		  visitCLMethodList:function(methodList){
+		      for(var x=0;x<methodList.list.length;x++){
+			    methodList.list[x].accept(this);
+			  }
+		  },
+		  visitCLFeatureList:function(featureList){
+		      // empty declaration
+		  },
+		  visitCLBranchList:function(branchList){
+		      // empty declaration
+		  },
+		  visitCLBranch:function(brnch){
+		      // empty
+		  },
+		  visitCLLetList:function(brnchList){
+		    //emtpy
+		  },
+		  visitCLLetItem:function(letItem){
+		    // empty;
 		  }
 	  };
  })());
