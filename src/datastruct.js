@@ -145,6 +145,7 @@ mixin(ret.CLFeatureList.prototype,(function(){
 	       } else {
 	         this.methodList.append(item);
 	       }
+		   return this;
 		},
 	    accept:function(visitor){
 		}
@@ -203,6 +204,7 @@ mixin(ret.CLFormalList.prototype,(function(){
 		  },
 		  append:function(item){
 		      this.list.push(item);
+			  return this;
 		  }
 	  };
  })());

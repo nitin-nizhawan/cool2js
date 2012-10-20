@@ -230,6 +230,8 @@ Program
 	   { 
 	           $$=$1;
                var prgm = new yy.ds.CLProgram($1);
+			   var sa = new yy.sa.CLSemanticAnalizer(prgm);
+			   sa.check();
 			   var visitor = new yy.ds.CLCodeGenVisitor("tmpns",prgm);
 			   //prgm.accept(visitor);
 			   visitor.codegen();

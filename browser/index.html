@@ -3,6 +3,7 @@
 <title>cool2js</title>
 <script src="../src/cool.js" ></script>
 <script src="../src/datastruct.js" ></script>
+<script src="../src/semant.js"></script>
 <script>
 
 function runit(){
@@ -14,6 +15,7 @@ function runit(){
 	//inptdiv.value="";
 	var parser = new cool.Parser();
 	parser.yy.ds = ds;
+	parser.yy.sa = sa;
 	parser.yy.debug = function(v){
 	  console.log(v);
 	};
