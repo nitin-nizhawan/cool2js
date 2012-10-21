@@ -20,6 +20,7 @@ label {
 </style>
 <script src="js/cool.js" ></script>
 <script src="js/datastruct.js" ></script>
+<script src="js/semant.js" ></script>
 <script>
 function getXHR(){
       if (window.XMLHttpRequest)
@@ -75,6 +76,7 @@ function runit(){
 	//inptdiv.value="";
 	var parser = new cool.Parser();
 	parser.yy.ds = ds;
+	parser.yy.sa = sa;
 	parser.yy.debug = function(v){
 	  dbgv.style.color='white';
 	  dbgv.value+=v;
