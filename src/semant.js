@@ -140,11 +140,9 @@ mixin(CollectDeclarationsVisitor.prototype,(function(){
 		  visitCLExprSemiColonList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
 		  visitCLLetExpr:function(letexpr){
 		      this.otable.enterscope();
-			  for(var i=0;i<letexpr.let_list.list.length;i++){
-                  this.otable.addid(letexpr.let_list.list[i].objectid, letexpr.let_list.list[i].typeid);
-                  letexpr.let_list.list[i].expr.accept(this);
-			  }
-	          letexpr.expr.accept(this);
+			  letexpr.let_list.accept(this);
+			  letexpr.expr.accept(this);
+			  
 			  this.snapshot(letexpr);
               this.otable.exitscope();
 		  },
@@ -192,14 +190,67 @@ mixin(CollectDeclarationsVisitor.prototype,(function(){
 			  this.snapshot(brnch);
 			  this.otable.exitscope();
 		  },
-		  visitCLLetList:function(brnchList){},
-		  visitCLLetItem:function(letItem){}
+		  visitCLLetList:function(brnchList){
+		      for(var i=0;i<brnchList.list.length;i++){
+                  brnchList.list[i].accept(this);
+			  }
+			  this.snapshot(brnchList);
+		  },
+		  visitCLLetItem:function(letItem){
+		      this.otable.addid(letItem.objectid, letItem.typeid);
+			  letItem.expr.accept(this);
+			  this.snapshot(letItem);
+		  }
 	  };
  })());
  
 function TypeCheckVisitor(ctable){this.ctable=ctable;}
 mixin(TypeCheckVisitor.prototype,(function(){
 	  return {
+	     error:function(msg){
+		     throw new SemanticError(msg);
+		 },
+	     lub:function(s1,s2) {
+             if (s1 == "SELF_TYPE"&& s2 == "SELF_TYPE")
+                 return "SELF_TYPE";
+             var c1 = (s1 == "SELF_TYPE") ? this.ctable.lookup(this.cur_class) : this.ctable.lookup(s1);
+             var c2 = (s2 == "SELF_TYPE") ? this.ctable.lookup(this.cur_class) : this.ctable.lookup(s2);
+
+             if ((!c1)&& (!c2))
+                return ("_no_type");
+             else if (!c1)
+                return s2;
+             else if (!c2)
+                return s1;
+
+             var class_set={};
+             while (c1) {
+                 class_set[c1.name]=true;
+                 c1 = this.ctable.lookup(c1.pclass);
+             }
+             while (c2) {
+                 if (class_set[c2.name])
+                     return c2.name;
+                 c2 = this.ctable.lookup(c2.pclass);
+             }
+             return null;     
+          },
+		  conform:function(computed_type,atype) {
+             // "_no_type" conforms to any type
+            if (computed_type == "_no_type")
+                  return true;
+            // no type conforms to "_no_type" except itself
+            if (atype == "_no_type")
+                 return false;
+             //SELF_TYPE_C <= SELF_TYPE_C
+            if (computed_type == "SELF_TYPE" && atype == "SELF_TYPE")
+                return true;
+            // T <= SELF_TYPE_C always false
+            if (atype == "SELF_TYPE")
+                return false;
+
+            return atype == this.lub(computed_type, atype);
+         },
 	      visitCLProgram:function(prg){
 		     var has_Main=false;
 			 var has_main_meth=false;
@@ -226,8 +277,34 @@ mixin(TypeCheckVisitor.prototype,(function(){
                     cls.featureList.list[i].accept(this);
 		 },
 		  visitCLAttr:function(attr){
-		      if(attr.expr) attr.expr.accept(this);
-		  },
+		     
+              // attribute name cannot be self
+              if (attr.name == "self") {
+                  this.error("'self' cannot be the name of an attribute.");
+              }
+             // inherited attributes cannot be redefined
+             var objcopy = attr.otable.clone();
+             objcopy.exitscope();
+             var lastobj = objcopy.lookup(attr.name);
+             if (lastobj) {
+                 this.error("Attribute " + attr.name + " is an attribute of an inherited class.");
+             }
+
+    // check if type exist
+            var decl = attr.ctable.lookup(attr.typeid);
+            if ((!decl)&& attr.typeid != "SELF_TYPE") {
+                this.error("Class " + attr.typeid + " of attribute " + attr.name + " is undefined.");
+            }
+             if (attr.expr) {
+                  attr.expr.accept(this);
+                  // check if init conform to type_decl
+                 if (!this.conform(attr.expr.computed_type,attr.typeid)) {
+                      this.error("Inferred type " + attr.expr.computed_type + " of initialization of attribute "+
+                       attr.name + " does not conform to declared type " +attr.typeid + ".");     
+                 }
+            }
+     
+    	  },
 		  visitCLMethod:function(method){
 		       method.paramList.accept(this);
                method.body.accept&&method.body.accept(this);
@@ -257,46 +334,186 @@ mixin(TypeCheckVisitor.prototype,(function(){
              //need to check if type exists
            if (!this.ctable.lookup(method.typeid) && method.typeid != "SELF_TYPE") {
                  throw new SemanticError("Undefined return type " + method.typeid + " in method " + method.name + ".") ;
-           } /*else if (!expr->conform(return_type)) {
+           } else if (method.body.accept&&!this.conform(method.body.computed_type,method.typeid)) {
                  //check if return type match
-                 throw new SemanticError("Inferred return type " + expr->type + " of method " + name+ " does not conform to declared return type " + return_type << ".");
-              }*/
+                 throw new SemanticError("Inferred return type " + method.body.computed_type + " of method " + method.name+ " does not conform to declared return type " + method.typeid + ".");
+            }
 		  },
 		  visitCLExprSemiColonList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
 		  visitCLLetExpr:function(letexpr){
-		  
-			  for(var i=0;i<letexpr.let_list.list.length;i++){
-                 letexpr.let_list.list[i].expr.accept(this);
-			  }
+		      letexpr.let_list.accept(this);
 	          letexpr.expr.accept(this);
+			  
+			  letexpr.computed_type = letexpr.expr.computed_type;
 		  },
-		  visitCLNew:function(newobj){},
-		  visitCLIsvoid:function(isvoid){ isvoid.expr.accept(this); },
-		  visitCLPlus:function(plus){ plus.expr1.accept(this); plus.expr2.accept(this);},
-		  visitCLSub:function(sub){ sub.expr1.accept(this); sub.expr2.accept(this);},
-		  visitCLMul:function(mul){ mul.expr1.accept(this); mul.expr2.accept(this);},
-		  visitCLDivide:function(dvd){ dvd.expr1.accept(this); dvd.expr2.accept(this);},
-		  visitCLNeg:function(exp){exp.expr.accept(this);},
-		  visitCLLt:function(eq){eq.expr1.accept(this); eq.expr2.accept(this);},
-		  visitCLLeq:function(eq){  eq.expr1.accept(this); eq.expr2.accept(this);},
-		  visitCLEq:function(eq){eq.expr1.accept(this); eq.expr2.accept(this);},
-		  visitCLComp:function(comp){ comp.expr.accept(this); },
-		  visitCLObject:function(objid){},
-		  visitCLIntConst:function(int_const){},
-		  visitCLStringConst:function(string_const){},
-		  visitCLBoolConst:function(bool_const){},
-		  visitCLAssign:function(asgn){asgn.expr.accept(this);},
-		  visitCLStaticDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);},
-		  visitCLDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);},
+		  visitCLNew:function(newobj){
+		      var atype = newobj.ctable.lookup(newobj.expr);
+              if (newobj.expr == "SELF_TYPE") {
+                // self_type is special case
+                newobj.computed_type = "SELF_TYPE";
+              } else if (!atype) {
+                 this.error("'new' used with undefined class " + newobj.expr + ".");
+				 //ERROR RECOVERY
+                 newobj.computed_type ="_no_type";
+              } else 
+                 newobj.computed_type = newobj.expr;
+    
+		  },
+		  visitCLIsvoid:function(isvoid){ isvoid.expr.accept(this); isvoid.computed_type="Bool"; },
+		  visitCLPlus:function(plus){ plus.expr1.accept(this); plus.expr2.accept(this);
+		      if(plus.expr1.computed_type!="Int"||plus.expr2.computed_type!="Int"){
+			      this.error("Non-Int argumnets :"+plus.expr1.computed_type+" + "+plus.expr2.computed_type+" .");
+			  }
+			  plus.computed_type="Int";
+		  },
+		  visitCLSub:function(sub){ sub.expr1.accept(this); sub.expr2.accept(this);
+		      if(sub.expr1.computed_type!="Int"||sub.expr2.computed_type!="Int"){
+			      this.error("Non-Int argumnets :"+sub.expr1.computed_type+" - "+sub.expr2.computed_type+" .");
+			  }
+			  sub.computed_type="Int";
+		  },
+		  visitCLMul:function(mul){ mul.expr1.accept(this); mul.expr2.accept(this);
+		      if(mul.expr1.computed_type!="Int"||mul.expr2.computed_type!="Int"){
+			      this.error("Non-Int argumnets :"+mul.expr1.computed_type+" * "+mul.expr2.computed_type+" .");
+			  }
+			  mul.computed_type="Int";
+		  },
+		  visitCLDivide:function(dvd){ dvd.expr1.accept(this); dvd.expr2.accept(this);
+		      if(dvd.expr1.computed_type!="Int"||dvd.expr2.computed_type!="Int"){
+			      this.error("Non-Int argumnets :"+dvd.expr1.computed_type+" / "+dvd.expr2.computed_type+" .");
+			  }
+			  dvd.computed_type="Int";
+		  },
+		  visitCLNeg:function(exp){exp.expr.accept(this);
+		      if(exp.expr.computed_type!="Int"){
+			     this.error("Argument of '~' has type "+exp.expr.computed_type+" instead of Int");
+			  }
+			  exp.expr.computed_type="Int";
+		  },
+		  visitCLLt:function(eq){
+		       eq.expr1.accept(this); eq.expr2.accept(this);
+			   if(eq.expr1.computed_type!="Int"||eq.expr2.computed_type!="Int"){
+			       this.error("Non-Int  arguments "+eq.expr1.computed_type +"<="+eq.expr2.computed_type+" .");
+			   }
+			   eq.computed_type="Bool";
+		  },
+		  visitCLLeq:function(eq){ 
+        		  eq.expr1.accept(this); eq.expr2.accept(this);
+		       if(eq.expr1.computed_type!="Int"||eq.expr2.computed_type!="Int"){
+			       this.error("Non-Int  arguments "+eq.expr1.computed_type +"<="+eq.expr2.computed_type+" .");
+			   }
+			   eq.computed_type="Bool";
+		  },
+		  isbasictype:function(tp){
+		      return tp=="Int"||tp=="String"||tp=="Bool";
+		  },
+		  visitCLEq:function(eq){
+		      eq.expr1.accept(this); eq.expr2.accept(this);
+			  if (this.isbasictype(eq.expr1.computed_type) || this.isbasictype(eq.expr2.computed_type))
+                 if (eq.expr1.computed_type != eq.expr2.computed_type) {
+                     this.error("Illegal comparison with a basic type");
+                 }
+			  eq.computed_type="Bool";
+		  },
+		  visitCLComp:function(comp){ 
+		      comp.expr.accept(this); 
+			  if(comp.expr.computed_type!="Bool"){
+			      this.error("Argument of 'not' has type " + comp.expr.computed_type + " instead of Bool.");
+			  }
+			  comp.computed_type="Bool";
+		  },
+		  visitCLObject:function(objid){
+		     if (objid.val == "self")
+                 objid.computed_type = "SELF_TYPE";
+             else if (!objid.otable.lookup(objid.val)) {
+                 this.error("Undeclared identifier " + objid.val + ".");
+               //ERROR RECOVERY
+                objid.computed_type = "_no_type";
+             } else
+                objid.computed_type = objid.otable.lookup(objid.val);
+          },
+		  visitCLIntConst:function(int_const){int_const.computed_type="Int";},
+		  visitCLStringConst:function(string_const){string_const.computed_type="String";},
+		  visitCLBoolConst:function(bool_const){bool_const.computed_type="Bool";},
+		  visitCLAssign:function(asgn){
+		       asgn.expr.accept(this);
+			   var atype = asgn.otable.lookup(asgn.objectid);
+               if (!atype) {
+                   this.error("Assignment to undeclared variable " + asgn.objectid + ".");
+               } else if (!this.conform(asgn.expr.computed_type,atype)) {
+                   // check if expr conforms to static type of assigned object
+                   this.error("Type " + asgn.expr.computed_type + " of assigned expression does not conform"+
+                       " to declared type " + atype + " of identifier " + asgn.objectid + ".");
+			   }
+     
+               asgn.computed_type = asgn.expr.computed_type;
+		  },
+		  visitCLStaticDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);
+		     var aclass = (dispatch.expr.computed_type=="SELF_TYPE")?dispatch.ctable.lookup(this.cur_class):dispatch.ctable.lookup(expr.computed_type);
+			 if(!aclass){
+			     this.error("dispatch on undefined class "+disptach.expr.computed_type);
+			 }
+		     var meth = aclass.ftable.lookup(dispatch.objectid);
+			 if(!meth){
+			     this.error("Method "+dispatch.objectid+" Not found ");
+			 }
+		     dispatch.computed_type=meth.typeid;
+		  },
+		  visitCLDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);
+		     var aclass = (dispatch.expr.computed_type=="SELF_TYPE")?dispatch.ctable.lookup(this.cur_class):dispatch.ctable.lookup(expr.computed_type);
+			 if(!aclass){
+			     this.error("dispatch on undefined class "+disptach.expr.computed_type);
+			 }
+		     var meth = aclass.ftable.lookup(dispatch.objectid);
+			 if(!meth){
+			     this.error("Method "+dispatch.objectid+" Not found ");
+			 }
+		     dispatch.computed_type=meth.typeid;
+		  },
 		  visitCLExprCommaSepList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
 		  visitCLFormalList:function(flist){for(var i=0;i<flist.list.length;i++) flist.list[i].accept(this);},
-		  visitCLFormal:function(formal){},
-		  visitCLBlock:function(block){block.expr_list.accept(this);},
-		  visitCLCond:function(cond){cond.expr1.accept(this); cond.expr2.accept(this); cond.expr3.accept(this);},
-		  visitCLLoop:function(loop){loop.expr1.accept(this); loop.expr2.accept(this);},
+		  visitCLFormal:function(formal){
+		      if(formal.objectid=="self"){
+			      this.error("self cannot be the name of formal parameter");
+			  }
+			  if(formal.typeid=="SELF_TYPE"){
+			      this.error("Formal parameter "+formal.objectid+" cannot have type SELF_TYPE");
+			  } else if(!this.ctable.lookup(formal.typeid)){
+			      this.error("Type "+formal.typeid+" of formal parameter "+formal.objectid+" is undefined");
+			  }
+		  },
+		  visitCLBlock:function(block){block.expr_list.accept(this);
+		      for(var i=0;i<block.expr_list.list.length;i++){
+			      block.computed_type = block.expr_list.list[i].computed_type;
+			  }
+		  },
+		  visitCLCond:function(cond){cond.expr1.accept(this); cond.expr2.accept(this); cond.expr3.accept(this);
+		      if(cond.expr1.computed_type!="Bool"){
+			      this.error("'if' condition does not have type Bool");
+			  }
+			  cond.computed_type = this.lub(cond.expr2.computed_type,cond.expr3.computed_type);
+		  },
+		  visitCLLoop:function(loop){loop.expr1.accept(this); loop.expr2.accept(this);
+		      if(loop.expr1.computed_type!="Bool"){
+			      this.error("Loop condition does not have type Bool");
+			  }
+		      loop.computed_type="Object";
+		  },
 		  visitCLCaseExpr:function(case_expr){
 		      case_expr.expr.accept(this);
 			  case_expr.case_list.accept(this);
+			  case_expr.computed_type="_no_type";
+			  for(var i = 0; i<case_expr.case_list.list.length; i++) {
+                  if (case_expr.case_list.list[i].typeid == "SELF_TYPE") {
+                     this.error("Identifier " + case_expr.case_list.list[i].typeid+" declared with type SELF_TYPE in case branch.");
+                  } else {
+                    // cases->nth(i)->typecheck(stream);
+                     if (case_expr.computed_type == "_no_type")
+                         case_expr.computed_type = case_expr.case_list.list[i].typeid;
+                     else
+		                 case_expr.computed_type = this.lub(case_expr.computed_type,case_expr.case_list.list[i].typeid);
+                  }
+               }
 		  },
 		  visitCLAttrList:function(attrList){},
 		  visitCLMethodList:function(methodList){},
@@ -308,9 +525,28 @@ mixin(TypeCheckVisitor.prototype,(function(){
 		  },
 		  visitCLBranch:function(brnch){
 			  brnch.expr.accept(this);
+			  if(!this.ctable.lookup(brnch.typeid)){
+			      this.error("Type "+brnch.typeid+" of case branch is undefined");
+			  }
 		  },
-		  visitCLLetList:function(brnchList){},
-		  visitCLLetItem:function(letItem){}
+		  visitCLLetList:function(brnchList){
+		      for(var i=0;i<brnchList.list.length;i++){
+			       brnchList.list[i].accept(this);
+			  }
+		  },
+		  visitCLLetItem:function(letItem){
+		      letItem.expr.accept(this);
+			  if(letItem.objectid=="self"){
+			     this.error("'self' cannot be bound in let expression");
+			  }
+			  if((!letItem.ctable.lookup(letItem.typeid))&&letItem.typeid!="SELF_TYPE"){
+			     this.error("Clsss "+letItem.typeid+ " of let bound identifier "+letItem.objectid+" is not found.");
+			  }
+			  if(!this.conform(letItem.expr.computed_type,letItem.typeid)){
+			      this.error("Inferred type " + letItem.expr.computed_type + " of initialization of " + letItem.objectid+
+                  " does not conform to identifier's declared type " + letItem.typeid + ".");
+			  }
+		  }
 	  };
  })());
 function ClassTable(){
