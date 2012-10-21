@@ -120,7 +120,7 @@ mixin(CollectDeclarationsVisitor.prototype,(function(){
                  if (afeature.isMethod())
                     this.ftable.addid(afeature.name, afeature);
                  else 
-                    this.otable.addid(afeature.name, afeature);
+                    this.otable.addid(afeature.name, afeature.typeid);
              }
              for(var i = 0; i<cls.featureList.list.length; i++) 
                     cls.featureList.list[i].accept(this);
@@ -393,14 +393,14 @@ mixin(TypeCheckVisitor.prototype,(function(){
 		  visitCLLt:function(eq){
 		       eq.expr1.accept(this); eq.expr2.accept(this);
 			   if(eq.expr1.computed_type!="Int"||eq.expr2.computed_type!="Int"){
-			       this.error("Non-Int  arguments "+eq.expr1.computed_type +"<="+eq.expr2.computed_type+" .");
+			       this.error("Non-Int  arguments "+eq.expr1.computed_type +"<"+eq.expr2.computed_type+" .");
 			   }
 			   eq.computed_type="Bool";
 		  },
 		  visitCLLeq:function(eq){ 
         		  eq.expr1.accept(this); eq.expr2.accept(this);
 		       if(eq.expr1.computed_type!="Int"||eq.expr2.computed_type!="Int"){
-			       this.error("Non-Int  arguments "+eq.expr1.computed_type +"<="+eq.expr2.computed_type+" .");
+			       this.error("Non-Int  arguments: "+eq.expr1.computed_type +"<="+eq.expr2.computed_type+" .");
 			   }
 			   eq.computed_type="Bool";
 		  },
@@ -476,7 +476,7 @@ mixin(TypeCheckVisitor.prototype,(function(){
 			 }
 		  },
 		  visitCLDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);
-		     var aclass = (dispatch.expr.computed_type=="SELF_TYPE")?dispatch.ctable.lookup(this.cur_class):dispatch.ctable.lookup(expr.computed_type);
+		     var aclass = (dispatch.expr.computed_type=="SELF_TYPE")?dispatch.ctable.lookup(this.cur_class):dispatch.ctable.lookup(dispatch.expr.computed_type);
 			 if(!aclass){
 			     this.error("dispatch on undefined class "+disptach.expr.computed_type);
 			 }
