@@ -453,11 +453,27 @@ mixin(TypeCheckVisitor.prototype,(function(){
 			 if(!aclass){
 			     this.error("dispatch on undefined class "+disptach.expr.computed_type);
 			 }
+			 if (!this.conform(dispatch.expr.computed_type,dispatch.typeid)) {
+                 this.error("Expression type " + dispatch.expr.computed_type + " does not conform to declared static dispatch type "+ dispatch.typeid + " .");
+            }         
 		     var meth = aclass.ftable.lookup(dispatch.objectid);
 			 if(!meth){
 			     this.error("Method "+dispatch.objectid+" Not found ");
 			 }
-		     dispatch.computed_type=meth.typeid;
+			 if(meth.paramList.list.length!=dispatch.params.list.length){
+			     this.error("Method "+dispatch.objectid+" called with wrong number of arguments");
+			 }
+			 for(var i=0;i<meth.paramList.list.length;i++){
+			     if(!this.conform(dispatch.params.list[i].computed_type,meth.paramList.list[i].typeid)){
+				     this.error("In the call of method "+dispatch.objectid+" ,type "+dispatch.params.list[i].computed_type+" does not conform "+
+					 "of parameter "+meth.paramList.list[i].objectid+" to declared type "+meth.paramList.list[i].typeid+" .");
+				 }
+			 }
+			 if(meth.typeid=="SELF_TYPE"){
+			     dispatch.computed_type=dispatch.expr.computed_type;
+			 } else {
+		         dispatch.computed_type=meth.typeid;
+			 }
 		  },
 		  visitCLDispatch:function(dispatch){dispatch.params.accept(this); dispatch.expr.accept(this);
 		     var aclass = (dispatch.expr.computed_type=="SELF_TYPE")?dispatch.ctable.lookup(this.cur_class):dispatch.ctable.lookup(expr.computed_type);
@@ -468,7 +484,20 @@ mixin(TypeCheckVisitor.prototype,(function(){
 			 if(!meth){
 			     this.error("Method "+dispatch.objectid+" Not found ");
 			 }
-		     dispatch.computed_type=meth.typeid;
+			 if(meth.paramList.list.length!=dispatch.params.list.length){
+			     this.error("Method "+dispatch.objectid+" called with wrong number of arguments");
+			 }
+			 for(var i=0;i<meth.paramList.list.length;i++){
+			     if(!this.conform(dispatch.params.list[i].computed_type,meth.paramList.list[i].typeid)){
+				     this.error("In the call of method "+dispatch.objectid+" ,type "+dispatch.params.list[i].computed_type+" does not conform "+
+					 "of parameter "+meth.paramList.list[i].objectid+" to declared type "+meth.paramList.list[i].typeid+" .");
+				 }
+			 }
+			 if(meth.typeid=="SELF_TYPE"){
+			     dispatch.computed_type=dispatch.expr.computed_type;
+			 } else {
+		         dispatch.computed_type=meth.typeid;
+			 }
 		  },
 		  visitCLExprCommaSepList:function(explist){for(var i=0;i<explist.list.length;i++) explist.list[i].accept(this);},
 		  visitCLFormalList:function(flist){for(var i=0;i<flist.list.length;i++) flist.list[i].accept(this);},
