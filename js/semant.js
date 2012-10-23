@@ -564,7 +564,7 @@ mixin(TypeCheckVisitor.prototype,(function(){
 			  }
 		  },
 		  visitCLLetItem:function(letItem){
-		      letItem.expr.accept(this);
+		      letItem.expr&&letItem.expr.accept(this);
 			  if(letItem.objectid=="self"){
 			     this.error("'self' cannot be bound in let expression");
 			  }
