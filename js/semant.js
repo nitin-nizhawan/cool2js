@@ -151,7 +151,7 @@ mixin(CollectDeclarationsVisitor.prototype,(function(){
 		  visitCLPlus:function(plus){ plus.expr1.accept(this); plus.expr2.accept(this);this.snapshot(plus);},
 		  visitCLSub:function(sub){ sub.expr1.accept(this); sub.expr2.accept(this);this.snapshot(sub);},
 		  visitCLMul:function(mul){ mul.expr1.accept(this); mul.expr2.accept(this);this.snapshot(mul);},
-		  visitCLDivide:function(dvd){ dvd.expr1.accept(this); dvd.expr2.accept(this);this.snapshot(dvds);},
+		  visitCLDivide:function(dvd){ dvd.expr1.accept(this); dvd.expr2.accept(this);this.snapshot(dvd);},
 		  visitCLNeg:function(exp){exp.expr.accept(this);this.snapshot(exp);},
 		  visitCLLt:function(eq){eq.expr1.accept(this); eq.expr2.accept(this);this.snapshot(eq);},
 		  visitCLLeq:function(eq){  eq.expr1.accept(this); eq.expr2.accept(this);this.snapshot(eq);},
