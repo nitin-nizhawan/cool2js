@@ -571,7 +571,7 @@ mixin(TypeCheckVisitor.prototype,(function(){
 			  if((!letItem.ctable.lookup(letItem.typeid))&&letItem.typeid!="SELF_TYPE"){
 			     this.error("Clsss "+letItem.typeid+ " of let bound identifier "+letItem.objectid+" is not found.");
 			  }
-			  if(!this.conform(letItem.expr.computed_type,letItem.typeid)){
+			  if(letItem.expr&&!this.conform(letItem.expr.computed_type,letItem.typeid)){
 			      this.error("Inferred type " + letItem.expr.computed_type + " of initialization of " + letItem.objectid+
                   " does not conform to identifier's declared type " + letItem.typeid + ".");
 			  }
