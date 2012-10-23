@@ -198,7 +198,7 @@ mixin(CollectDeclarationsVisitor.prototype,(function(){
 		  },
 		  visitCLLetItem:function(letItem){
 		      this.otable.addid(letItem.objectid, letItem.typeid);
-			  letItem.expr.accept(this);
+			  letItem.expr&&letItem.expr.accept(this);
 			  this.snapshot(letItem);
 		  }
 	  };
