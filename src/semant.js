@@ -198,7 +198,7 @@ mixin(CollectDeclarationsVisitor.prototype,(function(){
 		  },
 		  visitCLLetItem:function(letItem){
 		      this.otable.addid(letItem.objectid, letItem.typeid);
-			  letItem.expr.accept(this);
+			  letItem.expr&&letItem.expr.accept(this);
 			  this.snapshot(letItem);
 		  }
 	  };
@@ -564,7 +564,7 @@ mixin(TypeCheckVisitor.prototype,(function(){
 			  }
 		  },
 		  visitCLLetItem:function(letItem){
-		      letItem.expr.accept(this);
+		      letItem.expr&&letItem.expr.accept(this);
 			  if(letItem.objectid=="self"){
 			     this.error("'self' cannot be bound in let expression");
 			  }
