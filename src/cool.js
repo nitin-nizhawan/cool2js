@@ -636,7 +636,7 @@ case 50:
 break;
 case 51:
          if(yy.buff.length>=1024) yy.string_overflow=true;
-		 else yy.buff+='"';
+		 else yy.buff+='\\"';
 
 break;
 case 52:

@@ -140,7 +140,7 @@ ENDLINE         \n
 }
 <STRING>\\\"  {
          if(yy.buff.length>=1024) yy.string_overflow=true;
-		 else yy.buff+='"';
+		 else yy.buff+='\\"';
 }
 <STRING>\\{ENDLINE} {
          if(yy.buff.length>=1024) yy.string_overflow=true;
